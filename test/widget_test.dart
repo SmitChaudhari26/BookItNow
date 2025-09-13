@@ -12,3 +12,4 @@ void main() {
     expect(find.text("Login (skip for now)"), findsOneWidget);
   });
 }
+

@@ -1,16 +1,16 @@
-// lib/models/event.dart
+// lib/models/movie.dart
 
-class Event {
+class Movie {
   final String id;
   final String name;
   final String description;
   final String image;
-  final String language; // single language only
+  final List<String> language; // multiple possible
   final String duration;
   final List<String> category;
-  final String certificate;
+  final String certificate; // U/A, A, etc.
 
-  Event({
+  Movie({
     required this.id,
     required this.name,
     required this.description,
@@ -21,13 +21,13 @@ class Event {
     required this.certificate,
   });
 
-  factory Event.fromMap(String id, Map<String, dynamic> map) {
-    return Event(
+  factory Movie.fromMap(String id, Map<String, dynamic> map) {
+    return Movie(
       id: id,
       name: map['name'] as String,
       description: map['description'] as String,
       image: map['image'] as String,
-      language: map['language'] as String,
+      language: List<String>.from(map['language'] ?? []),
       duration: map['duration'] as String,
       category: List<String>.from(map['category'] ?? []),
       certificate: map['certificate'] as String,
