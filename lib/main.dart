@@ -10,7 +10,8 @@ import 'screens/home_screen.dart';
 import 'screens/movies_screen.dart';
 // import 'screens/events_screen.dart';
 import 'screens/add_movie_screen.dart';
-// import 'screens/add_event_screen.dart';
+import 'screens/add_event_screen.dart';
+import 'screens/add_event_show.dart';
 import 'screens/add_theater_screen.dart';
 import 'screens/add_movie_show.dart';
 // import 'screens/movie_detail_screen.dart';
@@ -20,7 +21,7 @@ import 'screens/movie_detail_screen.dart';
 
 // Models
 import 'models/movie.dart';
-//import 'models/event.dart';
+import 'models/event.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,9 +42,10 @@ class BookItNowApp extends StatelessWidget {
         '/movies': (context) => MoviesScreen(),
         // '/events': (context) => EventsScreen(),
         '/addMovie': (context) => AddMovieScreen(),
-        // '/addEvent': (context) => AddEventScreen(),
+        '/addEvent': (context) => AddEventScreen(),
         '/addTheater': (context) => AddTheaterScreen(),
         '/addShow': (context) => AddMovieShowScreen(),
+        '/addEventShow': (context) => AddEventShowScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/movieDetail') {

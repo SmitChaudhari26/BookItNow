@@ -1,8 +1,9 @@
 // lib/screens/home_screen.dart
+import 'package:bookitnow/models/event.dart';
+import 'package:bookitnow/screens/event_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/movie.dart';
-//import '../models/event.dart';
 import 'movie_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -29,28 +30,28 @@ class HomeScreen extends StatelessWidget {
     return movieList;
   }
 
-  /// Fetch events that have shows
-  // Future<List<Event>> _fetchEvents() async {
-  //   final snapshot = await FirebaseFirestore.instance
-  //       .collection('events')
-  //       .get();
+  /// Fetch events that have venues
+  Future<List<Event>> _fetchEvents() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('events')
+        .get();
 
-  //   List<Event> eventList = [];
-  //   for (var doc in snapshot.docs) {
-  //     final event = Event.fromMap(doc.id, doc.data());
+    List<Event> eventList = [];
+    for (var doc in snapshot.docs) {
+      final event = Event.fromMap(doc.id, doc.data());
 
-  //     // Check if event has at least one show
-  //     final showsSnapshot = await FirebaseFirestore.instance
-  //         .collection('shows')
-  //         .where('mediaItemId', isEqualTo: event.id)
-  //         .get();
+      // Check if event has at least one venue (eventVenues)
+      final venuesSnapshot = await FirebaseFirestore.instance
+          .collection('eventVenues')
+          .where('eventId', isEqualTo: event.id)
+          .get();
 
-  //     if (showsSnapshot.docs.isNotEmpty) {
-  //       eventList.add(event);
-  //     }
-  //   }
-  //   return eventList;
-  // }
+      if (venuesSnapshot.docs.isNotEmpty) {
+        eventList.add(event);
+      }
+    }
+    return eventList;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -158,6 +159,7 @@ class HomeScreen extends StatelessWidget {
               ),
               SizedBox(height: 24),
 
+              // 🔹 Buttons (Admin actions)
               ElevatedButton.icon(
                 icon: Icon(Icons.movie),
                 label: Text("Add Theater"),
@@ -183,8 +185,8 @@ class HomeScreen extends StatelessWidget {
               ),
               SizedBox(height: 20),
               ElevatedButton.icon(
-                icon: Icon(Icons.event),
-                label: Text("Add Meadia Item"),
+                icon: Icon(Icons.movie),
+                label: Text("Add Media Item"),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
                   textStyle: TextStyle(fontSize: 20),
@@ -193,6 +195,31 @@ class HomeScreen extends StatelessWidget {
                   Navigator.pushNamed(context, '/addMovie');
                 },
               ),
+              SizedBox(height: 20),
+              ElevatedButton.icon(
+                icon: Icon(Icons.event),
+                label: Text("Add Event"),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                  textStyle: TextStyle(fontSize: 20),
+                ),
+                onPressed: () {
+                  Navigator.pushNamed(context, '/addEvent');
+                },
+              ),
+              SizedBox(height: 20),
+              ElevatedButton.icon(
+                icon: Icon(Icons.location_on),
+                label: Text("Add Event Venue"),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                  textStyle: TextStyle(fontSize: 20),
+                ),
+                onPressed: () {
+                  Navigator.pushNamed(context, '/addEventShow');
+                },
+              ),
+              SizedBox(height: 32),
 
               // Events Section
               Text(
@@ -200,94 +227,94 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 12),
-              // FutureBuilder<List<Event>>(
-              //   future: _fetchEvents(),
-              //   builder: (context, snapshot) {
-              //     if (!snapshot.hasData) return CircularProgressIndicator();
-              //     if (snapshot.data!.isEmpty)
-              //       return Text("No events available.");
+              FutureBuilder<List<Event>>(
+                future: _fetchEvents(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return CircularProgressIndicator();
+                  if (snapshot.data!.isEmpty)
+                    return Text("No events available.");
 
-              //     return SizedBox(
-              //       height: 280,
-              //       child: ListView.builder(
-              //         scrollDirection: Axis.horizontal,
-              //         itemCount: snapshot.data!.length,
-              //         itemBuilder: (context, index) {
-              //           final event = snapshot.data![index];
-              //           return GestureDetector(
-              //             onTap: () {
-              //               Navigator.push(
-              //                 context,
-              //                 MaterialPageRoute(
-              //                   builder: (_) => MediaDetailScreen(media: event),
-              //                 ),
-              //               );
-              //             },
-              //             child: Container(
-              //               width: 180,
-              //               margin: EdgeInsets.only(right: 12),
-              //               decoration: BoxDecoration(
-              //                 border: Border.all(color: Colors.black),
-              //                 borderRadius: BorderRadius.circular(8),
-              //               ),
-              //               child: Column(
-              //                 crossAxisAlignment: CrossAxisAlignment.start,
-              //                 children: [
-              //                   Container(
-              //                     height: 180,
-              //                     width: double.infinity,
-              //                     decoration: BoxDecoration(
-              //                       borderRadius: BorderRadius.vertical(
-              //                         top: Radius.circular(8),
-              //                       ),
-              //                       image: event.image.isNotEmpty
-              //                           ? DecorationImage(
-              //                               image: NetworkImage(event.image),
-              //                               fit: BoxFit.cover,
-              //                             )
-              //                           : null,
-              //                       color: Colors.grey[300],
-              //                     ),
-              //                     child: event.image.isEmpty
-              //                         ? Icon(
-              //                             Icons.event,
-              //                             size: 80,
-              //                             color: Colors.grey[700],
-              //                           )
-              //                         : null,
-              //                   ),
-              //                   Padding(
-              //                     padding: EdgeInsets.all(8),
-              //                     child: Column(
-              //                       crossAxisAlignment:
-              //                           CrossAxisAlignment.start,
-              //                       children: [
-              //                         Text(
-              //                           event.name,
-              //                           style: TextStyle(
-              //                             fontWeight: FontWeight.bold,
-              //                           ),
-              //                         ),
-              //                         SizedBox(height: 4),
-              //                         Text(
-              //                           "${event.certificate} | ${event.language}", // single language
-              //                           style: TextStyle(
-              //                             fontSize: 12,
-              //                             color: Colors.grey[700],
-              //                           ),
-              //                         ),
-              //                       ],
-              //                     ),
-              //                   ),
-              //                 ],
-              //               ),
-              //             ),
-              //           );
-              //         },
-              //       ),
-              //     );
-              //   },
-              // ),
+                  return SizedBox(
+                    height: 280,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: snapshot.data!.length,
+                      itemBuilder: (context, index) {
+                        final event = snapshot.data![index];
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EventDetailScreen(event: event),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: 180,
+                            margin: EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.black),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  height: 180,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(8),
+                                    ),
+                                    image: event.image.isNotEmpty
+                                        ? DecorationImage(
+                                            image: NetworkImage(event.image),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
+                                    color: Colors.grey[300],
+                                  ),
+                                  child: event.image.isEmpty
+                                      ? Icon(
+                                          Icons.event,
+                                          size: 80,
+                                          color: Colors.grey[700],
+                                        )
+                                      : null,
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.all(8),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        event.name,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        event.category.join(', '),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         ),
