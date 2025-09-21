@@ -29,21 +29,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
       String uid = userCred.user!.uid;
 
-      // Fetch user from Firestore
-      DocumentSnapshot doc = await _firestore
-          .collection("users")
-          .doc(uid)
-          .get();
+      // 🔹 Define your admin UID(s)
+      const adminUids = [
+        "ADMIN_USER_ID_1", // replace with actual admin uid
+        "ADMIN_USER_ID_2",
+      ];
 
-      if (doc.exists) {
-        AppUser appUser = AppUser.fromMap(
-          doc.data() as Map<String, dynamic>,
-          uid,
-        );
-        print("✅ Logged in as ${appUser.email}");
+      if (adminUids.contains(uid)) {
+        Navigator.pushReplacementNamed(context, '/admin');
+      } else {
+        // Normal user → check Firestore
+        DocumentSnapshot doc = await _firestore
+            .collection("users")
+            .doc(uid)
+            .get();
+
+        if (doc.exists) {
+          AppUser appUser = AppUser.fromMap(
+            doc.data() as Map<String, dynamic>,
+            uid,
+          );
+          print("✅ Logged in as ${appUser.email}");
+        }
+
+        Navigator.pushReplacementNamed(context, '/home');
       }
-
-      Navigator.pushReplacementNamed(context, '/home');
     } on FirebaseAuthException catch (e) {
       String msg = "";
       if (e.code == "user-not-found") {

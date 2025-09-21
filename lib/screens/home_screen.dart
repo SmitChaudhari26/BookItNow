@@ -6,63 +6,132 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/movie.dart';
 import 'movie_detail_screen.dart';
 
-class HomeScreen extends StatelessWidget {
-  /// Fetch movies that have shows
-  Future<List<Movie>> _fetchMovies() async {
-    final snapshot = await FirebaseFirestore.instance
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String searchQuery = "";
+
+  /// Fetch movies with shows in a given location
+  Future<List<Movie>> _fetchMoviesByLocation(String location) async {
+    final moviesSnapshot = await FirebaseFirestore.instance
         .collection('movies')
         .get();
 
     List<Movie> movieList = [];
-    for (var doc in snapshot.docs) {
-      final movie = Movie.fromMap(doc.id, doc.data());
+    for (var movieDoc in moviesSnapshot.docs) {
+      final movie = Movie.fromMap(movieDoc.id, movieDoc.data());
 
-      // Check if movie has at least one show
+      // Get shows for this movie
       final showsSnapshot = await FirebaseFirestore.instance
           .collection('movieShows')
           .where('mediaItemId', isEqualTo: movie.id)
           .get();
 
-      if (showsSnapshot.docs.isNotEmpty) {
+      bool hasShowInLocation = false;
+
+      for (var showDoc in showsSnapshot.docs) {
+        final showData = showDoc.data();
+        final theaterId = showData['theaterId'];
+
+        // Fetch theater for this show
+        final theaterDoc = await FirebaseFirestore.instance
+            .collection('theaters')
+            .doc(theaterId)
+            .get();
+
+        if (theaterDoc.exists &&
+            theaterDoc['location'].toString().toLowerCase() ==
+                location.toLowerCase()) {
+          hasShowInLocation = true;
+          break;
+        }
+      }
+
+      if (hasShowInLocation) {
         movieList.add(movie);
       }
     }
+
     return movieList;
   }
 
-  /// Fetch events that have venues
-  Future<List<Event>> _fetchEvents() async {
-    final snapshot = await FirebaseFirestore.instance
+  /// Fetch events with venues in a given location
+  Future<List<Event>> _fetchEventsByLocation(String location) async {
+    final eventsSnapshot = await FirebaseFirestore.instance
         .collection('events')
         .get();
 
     List<Event> eventList = [];
-    for (var doc in snapshot.docs) {
-      final event = Event.fromMap(doc.id, doc.data());
+    for (var eventDoc in eventsSnapshot.docs) {
+      final event = Event.fromMap(eventDoc.id, eventDoc.data());
 
-      // Check if event has at least one venue (eventVenues)
+      // Check if this event has a venue in the given location
       final venuesSnapshot = await FirebaseFirestore.instance
           .collection('eventVenues')
           .where('eventId', isEqualTo: event.id)
           .get();
 
-      if (venuesSnapshot.docs.isNotEmpty) {
+      bool hasVenueInLocation = false;
+
+      for (var venueDoc in venuesSnapshot.docs) {
+        final venueData = venueDoc.data();
+        if (venueData['venueLocation'].toString().toLowerCase() ==
+            location.toLowerCase()) {
+          hasVenueInLocation = true;
+          break;
+        }
+      }
+
+      if (hasVenueInLocation) {
         eventList.add(event);
       }
     }
+
     return eventList;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("BookItNow")),
+      appBar: AppBar(
+        title: Text("BookItNow"),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.history),
+            onPressed: () {
+              Navigator.pushNamed(context, '/bookingHistory');
+            },
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 🔹 Search Bar
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: "Search by city (e.g., Nadiad)",
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    searchQuery = value.trim();
+                  });
+                },
+              ),
+              SizedBox(height: 20),
+
               // Movies Section
               Text(
                 "Movies",
@@ -70,7 +139,9 @@ class HomeScreen extends StatelessWidget {
               ),
               SizedBox(height: 12),
               FutureBuilder<List<Movie>>(
-                future: _fetchMovies(),
+                future: searchQuery.isEmpty
+                    ? Future.value([]) // 🔹 empty when no search
+                    : _fetchMoviesByLocation(searchQuery),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) return CircularProgressIndicator();
                   if (snapshot.data!.isEmpty)
@@ -159,68 +230,6 @@ class HomeScreen extends StatelessWidget {
               ),
               SizedBox(height: 24),
 
-              // 🔹 Buttons (Admin actions)
-              ElevatedButton.icon(
-                icon: Icon(Icons.movie),
-                label: Text("Add Theater"),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                  textStyle: TextStyle(fontSize: 20),
-                ),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/addTheater');
-                },
-              ),
-              SizedBox(height: 20),
-              ElevatedButton.icon(
-                icon: Icon(Icons.event),
-                label: Text("Add Show"),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                  textStyle: TextStyle(fontSize: 20),
-                ),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/addShow');
-                },
-              ),
-              SizedBox(height: 20),
-              ElevatedButton.icon(
-                icon: Icon(Icons.movie),
-                label: Text("Add Media Item"),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                  textStyle: TextStyle(fontSize: 20),
-                ),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/addMovie');
-                },
-              ),
-              SizedBox(height: 20),
-              ElevatedButton.icon(
-                icon: Icon(Icons.event),
-                label: Text("Add Event"),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                  textStyle: TextStyle(fontSize: 20),
-                ),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/addEvent');
-                },
-              ),
-              SizedBox(height: 20),
-              ElevatedButton.icon(
-                icon: Icon(Icons.location_on),
-                label: Text("Add Event Venue"),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                  textStyle: TextStyle(fontSize: 20),
-                ),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/addEventShow');
-                },
-              ),
-              SizedBox(height: 32),
-
               // Events Section
               Text(
                 "Events",
@@ -228,7 +237,9 @@ class HomeScreen extends StatelessWidget {
               ),
               SizedBox(height: 12),
               FutureBuilder<List<Event>>(
-                future: _fetchEvents(),
+                future: searchQuery.isEmpty
+                    ? Future.value([]) // 🔹 empty when no search
+                    : _fetchEventsByLocation(searchQuery),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) return CircularProgressIndicator();
                   if (snapshot.data!.isEmpty)

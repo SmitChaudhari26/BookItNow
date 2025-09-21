@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 // Screens
+import 'screens/admin_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/movies_screen.dart';
@@ -14,9 +15,9 @@ import 'screens/add_event_screen.dart';
 import 'screens/add_event_show.dart';
 import 'screens/add_theater_screen.dart';
 import 'screens/add_movie_show.dart';
+import 'screens/booking_history_screen.dart';
 // import 'screens/movie_detail_screen.dart';
 //import 'screens/event_detail_screen.dart';
-//import 'screens/seat_selection_screen.dart';
 import 'screens/movie_detail_screen.dart';
 
 // Models
@@ -38,6 +39,7 @@ class BookItNowApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => LoginScreen(),
+        '/admin': (context) => AdminScreen(),
         '/home': (context) => HomeScreen(),
         '/movies': (context) => MoviesScreen(),
         // '/events': (context) => EventsScreen(),
@@ -46,6 +48,7 @@ class BookItNowApp extends StatelessWidget {
         '/addTheater': (context) => AddTheaterScreen(),
         '/addShow': (context) => AddMovieShowScreen(),
         '/addEventShow': (context) => AddEventShowScreen(),
+        '/bookingHistory': (_) => BookingHistoryScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/movieDetail') {

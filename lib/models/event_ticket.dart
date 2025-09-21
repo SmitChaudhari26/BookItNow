@@ -41,11 +41,14 @@ class EventTicket {
     return {
       'userId': userId,
       'eventId': eventId,
+      'eventName': eventName, // ✅ Add this
       'venueId': venueId,
       'venueName': venueName,
-      'dateTime': dateTime,
-      'createdAt': createdAt,
-      'ticketCount': ticketCount, // include in map
+      'dateTime': Timestamp.fromDate(
+        dateTime,
+      ), // ✅ Store properly as Firestore Timestamp
+      'createdAt': Timestamp.fromDate(createdAt), // ✅ Same here
+      'ticketCount': ticketCount,
     };
   }
 }
