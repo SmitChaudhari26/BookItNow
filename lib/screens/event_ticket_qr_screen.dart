@@ -55,7 +55,7 @@ class EventTicketQRScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      "User ID: ${ticket.userId}\n"
+                      // "User ID: ${ticket.userId}\n"
                       "Event: ${ticket.eventName}\n"
                       "Venue: ${ticket.venueName}\n"
                       "Date: ${ticket.dateTime.day}/${ticket.dateTime.month}/${ticket.dateTime.year}\n"

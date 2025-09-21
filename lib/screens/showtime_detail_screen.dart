@@ -1,8 +1,8 @@
 // lib/screens/showtime_detail_screen.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:flutter/material.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../models/show.dart';
 import '../models/ticket.dart';
 import 'ticket_qr_screen.dart';
@@ -19,12 +19,13 @@ class ShowtimeDetailScreen extends StatefulWidget {
 
 class _ShowtimeDetailScreenState extends State<ShowtimeDetailScreen> {
   late Map<String, List<bool>> seatsMap;
-  Set<String> selectedSeats = {}; // ✅ Track selected seats
+  Set<String> selectedSeats = {};
+  late Razorpay _razorpay;
 
   @override
   void initState() {
     super.initState();
-    // Get seat list only for the selected showtime
+
     seatsMap = {
       "Executive": List<bool>.from(
         widget.show.executiveSeats[widget.selectedTime]!,
@@ -35,6 +36,121 @@ class _ShowtimeDetailScreenState extends State<ShowtimeDetailScreen> {
         widget.show.reclinerSeats[widget.selectedTime]!,
       ),
     };
+
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    super.dispose();
+  }
+
+  // Razorpay Handlers
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    _bookSeats();
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Payment failed: ${response.message}")),
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("External Wallet: ${response.walletName}")),
+    );
+  }
+
+  void _openCheckout(int amountInRupees) {
+    var options = {
+      'key': 'rzp_test_your_key', // Replace with your Razorpay Test Key
+      'amount': amountInRupees * 100, // in paise
+      'name': 'Movie Booking',
+      'description': widget.show.mediaItemId,
+      'prefill': {'contact': '9876543210', 'email': 'test@example.com'},
+      'external': {
+        'wallets': ['paytm'],
+      },
+    };
+
+    try {
+      _razorpay.open(options);
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
+  void _bookSeats() async {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+
+    // Fetch movie & theater details
+    final movieDoc = await FirebaseFirestore.instance
+        .collection("movies")
+        .doc(widget.show.mediaItemId)
+        .get();
+    final movieName = movieDoc.exists ? movieDoc["name"] : "Unknown Movie";
+
+    final theaterDoc = await FirebaseFirestore.instance
+        .collection("theaters")
+        .doc(widget.show.theaterId)
+        .get();
+    final theaterName = theaterDoc.exists
+        ? theaterDoc["name"]
+        : "Unknown Theater";
+    final cityName = theaterDoc.exists
+        ? theaterDoc["location"]
+        : "Unknown City";
+
+    // Calculate total amount
+
+    // Create ticket
+    final ticket = Ticket(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      userId: userId,
+      movieName: movieName,
+      theaterName: theaterName,
+      cityName: cityName,
+      dateTime: widget.show.date,
+      showTime: widget.selectedTime,
+      seatSection: selectedSeats.first.split("-")[0],
+      seatNumbers: selectedSeats
+          .map((s) => int.parse(s.split("-")[1]))
+          .toList(),
+    );
+
+    final ticketRef = FirebaseFirestore.instance
+        .collection("tickets")
+        .doc(ticket.id);
+    await ticketRef.set(ticket.toMap());
+
+    // Update booked seats
+    final showRef = FirebaseFirestore.instance
+        .collection("movieShows")
+        .doc(widget.show.id);
+
+    for (var seat in selectedSeats) {
+      final section = seat.split("-")[0];
+      final seatNum = int.parse(seat.split("-")[1]) - 1;
+      seatsMap[section]![seatNum] = true;
+    }
+
+    await showRef.set({
+      "executiveSeats": {"${widget.selectedTime}": seatsMap["Executive"]},
+      "clubSeats": {"${widget.selectedTime}": seatsMap["Club"]},
+      "royalSeats": {"${widget.selectedTime}": seatsMap["Royal"]},
+      "reclinerSeats": {"${widget.selectedTime}": seatsMap["Recliner"]},
+    }, SetOptions(merge: true));
+
+    // Navigate to QR screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => TicketQrScreen(ticket: ticket)),
+    );
   }
 
   Widget _buildSeatRow(String type, List<bool> seats) {
@@ -43,7 +159,7 @@ class _ShowtimeDetailScreenState extends State<ShowtimeDetailScreen> {
       physics: NeverScrollableScrollPhysics(),
       itemCount: seats.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 10, // ✅ 10 seats per row
+        crossAxisCount: 10,
         crossAxisSpacing: 6,
         mainAxisSpacing: 6,
       ),
@@ -71,16 +187,15 @@ class _ShowtimeDetailScreenState extends State<ShowtimeDetailScreen> {
                 color: booked
                     ? Colors.red
                     : isSelected
-                    ? Colors
-                          .blue // selected seat
-                    : Colors.green, // available seat
+                    ? Colors.blue
+                    : Colors.green,
                 width: 2,
               ),
               borderRadius: BorderRadius.circular(6),
             ),
             alignment: Alignment.center,
             child: Text(
-              "${index + 1}", // seat number
+              "${index + 1}",
               style: TextStyle(
                 color: booked
                     ? Colors.red
@@ -97,105 +212,20 @@ class _ShowtimeDetailScreenState extends State<ShowtimeDetailScreen> {
     );
   }
 
-  void _bookSeats() async {
-    final userId = FirebaseAuth.instance.currentUser!.uid; // ✅ get current user
-
-    // 1️⃣ Fetch movie name from movie ID
-    final movieDoc = await FirebaseFirestore.instance
-        .collection("movies")
-        .doc(widget.show.mediaItemId)
-        .get();
-    final movieName = movieDoc.exists ? movieDoc["name"] : "Unknown Movie";
-
-    // 2️⃣ Fetch theater name from theater ID
-    final theaterDoc = await FirebaseFirestore.instance
-        .collection("theaters")
-        .doc(widget.show.theaterId)
-        .get();
-    final theaterName = theaterDoc.exists
-        ? theaterDoc["name"]
-        : "Unknown Theater";
-    final cityName = theaterDoc.exists
-        ? theaterDoc["location"]
-        : "Unknown City";
-
-    final ticket = Ticket(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
-      userId: userId,
-      movieName: movieName,
-      theaterName: theaterName,
-      cityName: cityName,
-      showTime: widget.selectedTime,
-      seatSection: selectedSeats.first.split("-")[0],
-      seatNumbers: selectedSeats
-          .map((s) => int.parse(s.split("-")[1]))
-          .toList(),
-    );
-
-    final ticketRef = FirebaseFirestore.instance
-        .collection("tickets")
-        .doc(ticket.id);
-
-    // Save ticket
-    await ticketRef.set(ticket.toMap());
-
-    // Update booked seats safely
-    final showRef = FirebaseFirestore.instance
-        .collection("movieShows")
-        .doc(widget.show.id);
-
-    Map<String, List<bool>> updatedSeats(
-      String section,
-      Map<String, dynamic> seatsMap,
-    ) {
-      final map = Map<String, List<bool>>.from(seatsMap[section] ?? {});
-      if (!map.containsKey(widget.selectedTime)) {
-        map[widget.selectedTime] = List.filled(
-          seatsMap[section]?.values.first.length ?? 0,
-          false,
-        );
-      }
-      return map;
-    }
-
-    final executive = updatedSeats("executiveSeats", widget.show.toMap());
-    final club = updatedSeats("clubSeats", widget.show.toMap());
-    final royal = updatedSeats("royalSeats", widget.show.toMap());
-    final recliner = updatedSeats("reclinerSeats", widget.show.toMap());
-
-    // Mark selected seats as booked
-    for (var seat in selectedSeats) {
-      final section = seat.split("-")[0];
-      final seatNum = int.parse(seat.split("-")[1]) - 1;
-
-      switch (section) {
-        case "Executive":
-          executive[widget.selectedTime]![seatNum] = true;
-          break;
-        case "Club":
-          club[widget.selectedTime]![seatNum] = true;
-          break;
-        case "Royal":
-          royal[widget.selectedTime]![seatNum] = true;
-          break;
-        case "Recliner":
-          recliner[widget.selectedTime]![seatNum] = true;
-          break;
-      }
-    }
-
-    // Push updated seat info to Firestore safely
-    await showRef.set({
-      "executiveSeats": executive,
-      "clubSeats": club,
-      "royalSeats": royal,
-      "reclinerSeats": recliner,
-    }, SetOptions(merge: true));
-
-    // Navigate to QR screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => TicketQrScreen(ticket: ticket)),
+  Widget _legendBox(Color color, String text) {
+    return Row(
+      children: [
+        Container(
+          width: 20,
+          height: 20,
+          margin: EdgeInsets.only(right: 6),
+          decoration: BoxDecoration(
+            border: Border.all(color: color, width: 2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        Text(text),
+      ],
     );
   }
 
@@ -210,7 +240,6 @@ class _ShowtimeDetailScreenState extends State<ShowtimeDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ✅ Projection Screen at the top
             Center(
               child: Container(
                 width: double.infinity,
@@ -227,8 +256,6 @@ class _ShowtimeDetailScreenState extends State<ShowtimeDetailScreen> {
                 ),
               ),
             ),
-
-            // ✅ Seats below the screen
             ...seatsMap.entries.map((entry) {
               final type = entry.key;
               final seats = entry.value;
@@ -250,8 +277,6 @@ class _ShowtimeDetailScreenState extends State<ShowtimeDetailScreen> {
                 ),
               );
             }).toList(),
-
-            // ✅ Legend for clarity
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -264,8 +289,6 @@ class _ShowtimeDetailScreenState extends State<ShowtimeDetailScreen> {
           ],
         ),
       ),
-
-      // ✅ Book Button
       bottomNavigationBar: selectedSeats.isNotEmpty
           ? Padding(
               padding: const EdgeInsets.all(16.0),
@@ -274,31 +297,29 @@ class _ShowtimeDetailScreenState extends State<ShowtimeDetailScreen> {
                   backgroundColor: Colors.red,
                   minimumSize: Size(double.infinity, 50),
                 ),
-                onPressed: _bookSeats,
+                onPressed: () {
+                  // Calculate dynamic price
+                  Map<String, int> seatPrices = {
+                    "Executive": 100,
+                    "Club": 150,
+                    "Royal": 250,
+                    "Recliner": 400,
+                  };
+
+                  int totalAmount = selectedSeats.fold(0, (sum, seatId) {
+                    final type = seatId.split("-")[0];
+                    return sum + (seatPrices[type] ?? 0);
+                  });
+
+                  _openCheckout(totalAmount);
+                },
                 child: Text(
-                  "Book ${selectedSeats.length} Seat(s)",
+                  "Pay & Book ${selectedSeats.length} Seat(s)",
                   style: TextStyle(fontSize: 18, color: Colors.white),
                 ),
               ),
             )
           : null,
-    );
-  }
-
-  Widget _legendBox(Color color, String text) {
-    return Row(
-      children: [
-        Container(
-          width: 20,
-          height: 20,
-          margin: EdgeInsets.only(right: 6),
-          decoration: BoxDecoration(
-            border: Border.all(color: color, width: 2),
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-        Text(text),
-      ],
     );
   }
 }

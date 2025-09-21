@@ -39,6 +39,7 @@ class TicketQrScreen extends StatelessWidget {
                 "Movie: ${ticket.movieName}\n"
                 "Theater: ${ticket.theaterName}\n"
                 "City: ${ticket.cityName}\n"
+                "Date: ${ticket.dateTime}\n"
                 "ShowTime: ${ticket.showTime}\n"
                 "Section: ${ticket.seatSection}\n"
                 "Seats: ${ticket.seatNumbers.join(', ')}",

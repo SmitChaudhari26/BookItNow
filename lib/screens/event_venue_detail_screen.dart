@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../models/event_venue.dart';
 import '../models/event_ticket.dart';
 import 'event_ticket_qr_screen.dart';
@@ -17,7 +18,68 @@ class EventVenueDetailScreen extends StatefulWidget {
 
 class _EventVenueDetailScreenState extends State<EventVenueDetailScreen> {
   bool booking = false;
+  late Razorpay _razorpay;
+  int selectedTicketCount = 1;
 
+  @override
+  void initState() {
+    super.initState();
+    _razorpay = Razorpay();
+
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    super.dispose();
+  }
+
+  // Razorpay Handlers
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    _bookTicket(
+      selectedTicketCount,
+    ); // Book tickets only after successful payment
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Payment failed: ${response.message}")),
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("External wallet: ${response.walletName}")),
+    );
+  }
+
+  // Open Razorpay Checkout
+  void _openCheckout(int amountInRupees) {
+    var options = {
+      'key': 'rzp_test_your_key', // Replace with your Razorpay Test Key ID
+      'amount': amountInRupees * 100, // amount in paise
+      'name': 'Event Booking',
+      'description': widget.venue.venueName,
+      'prefill': {
+        'contact': '9876543210',
+        'email': 'test@example.com',
+      }, //5123 4567 8901 2346
+      'external': {
+        'wallets': ['paytm'],
+      },
+    };
+
+    try {
+      _razorpay.open(options);
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
+  // Booking function (after payment)
   Future<void> _bookTicket(int count) async {
     setState(() => booking = true);
 
@@ -41,7 +103,7 @@ class _EventVenueDetailScreenState extends State<EventVenueDetailScreen> {
         // Update booked count
         transaction.update(venueRef, {'bookedCount': bookedCount + count});
 
-        // Create single ticket with ticketCount
+        // Create ticket
         final userId = FirebaseAuth.instance.currentUser?.uid ?? "guest";
         final eventDoc = await FirebaseFirestore.instance
             .collection("events")
@@ -61,7 +123,7 @@ class _EventVenueDetailScreenState extends State<EventVenueDetailScreen> {
           venueName: widget.venue.venueName,
           dateTime: widget.venue.dateTime,
           createdAt: DateTime.now(),
-          ticketCount: count, // set number of tickets
+          ticketCount: count,
         );
 
         transaction.set(docRef, ticket.toMap());
@@ -83,8 +145,10 @@ class _EventVenueDetailScreenState extends State<EventVenueDetailScreen> {
     setState(() => booking = false);
   }
 
+  // Show ticket count dialog
   void _showBookingDialog() {
-    int count = 1;
+    selectedTicketCount = 1;
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -95,15 +159,20 @@ class _EventVenueDetailScreenState extends State<EventVenueDetailScreen> {
             children: [
               IconButton(
                 onPressed: () {
-                  if (count > 1) setState(() => count--);
+                  if (selectedTicketCount > 1)
+                    setState(() => selectedTicketCount--);
                 },
                 icon: Icon(Icons.remove),
               ),
-              Text(count.toString(), style: TextStyle(fontSize: 18)),
+              Text(
+                selectedTicketCount.toString(),
+                style: TextStyle(fontSize: 18),
+              ),
               IconButton(
                 onPressed: () {
-                  if (count < widget.venue.capacity - widget.venue.bookedCount)
-                    setState(() => count++);
+                  if (selectedTicketCount <
+                      widget.venue.capacity - widget.venue.bookedCount)
+                    setState(() => selectedTicketCount++);
                 },
                 icon: Icon(Icons.add),
               ),
@@ -118,9 +187,11 @@ class _EventVenueDetailScreenState extends State<EventVenueDetailScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _bookTicket(count);
+              // Suppose ticket price is ₹500 per ticket
+              int totalAmount = selectedTicketCount * 500;
+              _openCheckout(totalAmount); // Open Razorpay payment
             },
-            child: Text("Book"),
+            child: Text("Pay & Book Tickets"),
           ),
         ],
       ),
