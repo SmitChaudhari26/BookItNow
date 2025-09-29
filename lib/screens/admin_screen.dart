@@ -7,13 +7,21 @@ class AdminScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Admin Dashboard"), centerTitle: true),
+      appBar: AppBar(
+        title: const Text(
+          "Admin Dashboard",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+        elevation: 6,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: GridView.count(
           crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
           children: [
             _adminTile(
               context,
@@ -60,17 +68,22 @@ class AdminScreen extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, route),
       child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 8,
+        color: Colors.blue.shade50,
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 50, color: Colors.blue),
-              SizedBox(height: 10),
+              Icon(icon, size: 60, color: Colors.blueAccent),
+              const SizedBox(height: 12),
               Text(
                 title,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
               ),
             ],
           ),

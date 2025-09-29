@@ -12,39 +12,59 @@ class TicketQrScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Redirect to Home screen and clear previous routes
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => HomeScreen()),
           (route) => false,
         );
-        return false; // Prevent default back behavior
+        return false;
       },
       child: Scaffold(
         appBar: AppBar(
           title: Text("Your Ticket"),
-          automaticallyImplyLeading: true, // ✅ show back button
+          automaticallyImplyLeading: true,
         ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              QrImageView(
-                data: ticket.qrData,
-                version: QrVersions.auto,
-                size: 250.0,
+              // ✅ QR inside a styled box
+              Card(
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                margin: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: QrImageView(
+                    data: ticket.qrData,
+                    version: QrVersions.auto,
+                    size: 220.0,
+                  ),
+                ),
               ),
               SizedBox(height: 20),
-              Text(
-                "Movie: ${ticket.movieName}\n"
-                "Theater: ${ticket.theaterName}\n"
-                "City: ${ticket.cityName}\n"
-                "Date: ${ticket.dateTime}\n"
-                "ShowTime: ${ticket.showTime}\n"
-                "Section: ${ticket.seatSection}\n"
-                "Seats: ${ticket.seatNumbers.join(', ')}",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
+              // Ticket details
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 24),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey.shade100,
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Text(
+                  "🎬 Movie: ${ticket.movieName}\n"
+                  "🏛 Theater: ${ticket.theaterName}\n"
+                  "📍 City: ${ticket.cityName}\n"
+                  "📅 Date: ${ticket.dateTime}\n"
+                  "⏰ ShowTime: ${ticket.showTime}\n"
+                  "🎟 Section: ${ticket.seatSection}\n"
+                  "💺 Seats: ${ticket.seatNumbers.join(', ')}",
+                  textAlign: TextAlign.left,
+                  style: TextStyle(fontSize: 16, height: 1.5),
+                ),
               ),
             ],
           ),

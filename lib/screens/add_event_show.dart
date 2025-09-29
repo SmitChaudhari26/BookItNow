@@ -1,5 +1,4 @@
 // lib/screens/add_event_show.dart
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/event.dart';
@@ -22,10 +21,8 @@ class _AddEventShowScreenState extends State<AddEventShowScreen> {
   final _capacityController = TextEditingController();
 
   DateTime? _selectedDateTime;
-
   List<String> _availableLanguages = [];
 
-  /// fetch events from Firestore
   Future<List<Event>> _fetchEvents() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('events')
@@ -35,7 +32,6 @@ class _AddEventShowScreenState extends State<AddEventShowScreen> {
         .toList();
   }
 
-  /// add venue show
   Future<void> _addEventShow() async {
     if (!_formKey.currentState!.validate() ||
         _selectedEventId == null ||
@@ -76,10 +72,32 @@ class _AddEventShowScreenState extends State<AddEventShowScreen> {
     }
   }
 
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: Colors.blueAccent),
+      filled: true,
+      fillColor: Colors.grey.shade100,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Add Event Venue")),
+      appBar: AppBar(
+        title: const Text(
+          "Add Event Venue",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+        elevation: 6,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -95,9 +113,7 @@ class _AddEventShowScreenState extends State<AddEventShowScreen> {
                   }
                   return DropdownButtonFormField<String>(
                     value: _selectedEventId,
-                    decoration: const InputDecoration(
-                      labelText: "Select Event",
-                    ),
+                    decoration: _inputDecoration("Select Event", Icons.event),
                     items: snapshot.data!
                         .map(
                           (event) => DropdownMenuItem<String>(
@@ -110,9 +126,9 @@ class _AddEventShowScreenState extends State<AddEventShowScreen> {
                       setState(() {
                         _selectedEventId = value;
                         final event = snapshot.data!.firstWhere(
-                          (element) => element.id == value,
+                          (e) => e.id == value,
                         );
-                        _availableLanguages = [event.language]; // single lang
+                        _availableLanguages = [event.language];
                         _selectedLanguage = null;
                       });
                     },
@@ -121,12 +137,12 @@ class _AddEventShowScreenState extends State<AddEventShowScreen> {
                   );
                 },
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               /// Language Dropdown
               DropdownButtonFormField<String>(
                 value: _selectedLanguage,
-                decoration: const InputDecoration(labelText: "Language"),
+                decoration: _inputDecoration("Language", Icons.language),
                 items: _availableLanguages
                     .map(
                       (lang) =>
@@ -136,34 +152,35 @@ class _AddEventShowScreenState extends State<AddEventShowScreen> {
                 onChanged: (val) => setState(() => _selectedLanguage = val),
                 validator: (v) => v == null ? "Please select language" : null,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               /// Venue name
               TextFormField(
                 controller: _venueNameController,
-                decoration: const InputDecoration(labelText: "Venue Name"),
+                decoration: _inputDecoration("Venue Name", Icons.location_city),
                 validator: (v) => v!.isEmpty ? "Enter venue name" : null,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               /// Venue city/location
               TextFormField(
                 controller: _venueLocationController,
-                decoration: const InputDecoration(labelText: "City / Location"),
+                decoration: _inputDecoration("City / Location", Icons.place),
                 validator: (v) => v!.isEmpty ? "Enter venue location" : null,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               /// Capacity
               TextFormField(
                 controller: _capacityController,
-                decoration: const InputDecoration(
-                  labelText: "Capacity (Total Seats)",
+                decoration: _inputDecoration(
+                  "Capacity (Total Seats)",
+                  Icons.event_seat,
                 ),
                 keyboardType: TextInputType.number,
                 validator: (v) => v!.isEmpty ? "Enter total capacity" : null,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               /// Date & Time picker
               InkWell(
@@ -193,23 +210,47 @@ class _AddEventShowScreenState extends State<AddEventShowScreen> {
                     }
                   }
                 },
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: "Select Date & Time",
-                    border: OutlineInputBorder(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
                   ),
-                  child: Text(
-                    _selectedDateTime == null
-                        ? "Choose date & time"
-                        : "${_selectedDateTime!.day}/${_selectedDateTime!.month}/${_selectedDateTime!.year} ${_selectedDateTime!.hour}:${_selectedDateTime!.minute.toString().padLeft(2, '0')}",
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade400),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Icon(Icons.calendar_today, color: Colors.blueAccent),
+                      Text(
+                        _selectedDateTime == null
+                            ? "Choose date & time"
+                            : "${_selectedDateTime!.day}/${_selectedDateTime!.month}/${_selectedDateTime!.year} ${_selectedDateTime!.hour}:${_selectedDateTime!.minute.toString().padLeft(2, '0')}",
+                      ),
+                    ],
                   ),
                 ),
               ),
               const SizedBox(height: 20),
 
-              ElevatedButton(
-                onPressed: _addEventShow,
-                child: const Text("Add Event Venue"),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _addEventShow,
+                  child: const Text(
+                    "Add Event Venue",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ),
             ],
           ),

@@ -14,6 +14,20 @@ class _AddTheaterScreenState extends State<AddTheaterScreen> {
   final _theaterController = TextEditingController();
   final _screensController = TextEditingController();
 
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: Colors.blueAccent),
+      filled: true,
+      fillColor: Colors.grey.shade100,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+      ),
+    );
+  }
+
   Future<void> _addTheater() async {
     if (_formKey.currentState!.validate()) {
       try {
@@ -28,9 +42,9 @@ class _AddTheaterScreenState extends State<AddTheaterScreen> {
 
         await docRef.set(theater.toMap());
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("✅ Theater added successfully")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("✅ Theater added successfully")),
+        );
         Navigator.pop(context);
       } catch (e) {
         ScaffoldMessenger.of(
@@ -43,33 +57,62 @@ class _AddTheaterScreenState extends State<AddTheaterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Add Theater")),
+      appBar: AppBar(
+        title: const Text(
+          "Add Theater",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+        elevation: 6,
+      ),
       body: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
               TextFormField(
                 controller: _cityController,
-                decoration: InputDecoration(labelText: "City"),
+                decoration: _inputDecoration("City", Icons.location_city),
                 validator: (v) => v!.isEmpty ? "Enter city" : null,
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _theaterController,
-                decoration: InputDecoration(labelText: "Theater / Place Name"),
+                decoration: _inputDecoration(
+                  "Theater / Place Name",
+                  Icons.theaters,
+                ),
                 validator: (v) => v!.isEmpty ? "Enter theater name" : null,
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _screensController,
-                decoration: InputDecoration(labelText: "Total Screens"),
+                decoration: _inputDecoration(
+                  "Total Screens",
+                  Icons.screen_share,
+                ),
                 keyboardType: TextInputType.number,
                 validator: (v) => v!.isEmpty ? "Enter total screens" : null,
               ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _addTheater,
-                child: Text("Add Theater"),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _addTheater,
+                  child: const Text(
+                    "Add Theater",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ),
             ],
           ),

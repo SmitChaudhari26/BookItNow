@@ -42,40 +42,69 @@ class BookingHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Booking History")),
+      appBar: AppBar(
+        title: const Text(
+          "Booking History",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+        elevation: 6,
+      ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _fetchAllTickets(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
-            return Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
           final movieTickets = snapshot.data!['movies'] as List<Ticket>;
           final eventTickets = snapshot.data!['events'] as List<EventTicket>;
 
           if (movieTickets.isEmpty && eventTickets.isEmpty) {
-            return Center(child: Text("No tickets booked yet."));
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.event_busy, size: 60, color: Colors.grey),
+                  SizedBox(height: 12),
+                  Text(
+                    "No tickets booked yet.",
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
           }
 
           return SingleChildScrollView(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (movieTickets.isNotEmpty) ...[
-                  Text(
+                  const Text(
                     "Movie Tickets",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   ...movieTickets.map((t) => _movieTicketTile(context, t)),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                 ],
                 if (eventTickets.isNotEmpty) ...[
-                  Text(
+                  const Text(
                     "Event Tickets",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   ...eventTickets.map((t) => _eventTicketTile(context, t)),
                 ],
               ],
@@ -88,13 +117,22 @@ class BookingHistoryScreen extends StatelessWidget {
 
   Widget _movieTicketTile(BuildContext context, Ticket ticket) {
     return Card(
-      margin: EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.blue.shade50,
+      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        title: Text(ticket.movieName),
-        subtitle: Text(
-          "Theater: ${ticket.theaterName}, Time: ${ticket.showTime}, Date: ${ticket.dateTime.day}/${ticket.dateTime.month}/${ticket.dateTime.year}",
+        contentPadding: const EdgeInsets.all(16),
+        title: Text(
+          ticket.movieName,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
-        trailing: Icon(Icons.qr_code),
+        subtitle: Text(
+          "Theater: ${ticket.theaterName}\n"
+          "Time: ${ticket.showTime}\n"
+          "Date: ${ticket.dateTime.day}/${ticket.dateTime.month}/${ticket.dateTime.year}",
+        ),
+        trailing: const Icon(Icons.qr_code, size: 32, color: Colors.blueAccent),
         onTap: () {
           Navigator.push(
             context,
@@ -107,13 +145,21 @@ class BookingHistoryScreen extends StatelessWidget {
 
   Widget _eventTicketTile(BuildContext context, EventTicket ticket) {
     return Card(
-      margin: EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.green.shade50,
+      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        title: Text(ticket.eventName),
-        subtitle: Text(
-          "Venue: ${ticket.venueName}, Date: ${ticket.dateTime.day}/${ticket.dateTime.month}/${ticket.dateTime.year}",
+        contentPadding: const EdgeInsets.all(16),
+        title: Text(
+          ticket.eventName,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
-        trailing: Icon(Icons.qr_code),
+        subtitle: Text(
+          "Venue: ${ticket.venueName}\n"
+          "Date: ${ticket.dateTime.day}/${ticket.dateTime.month}/${ticket.dateTime.year}",
+        ),
+        trailing: const Icon(Icons.qr_code, size: 32, color: Colors.green),
         onTap: () {
           Navigator.push(
             context,

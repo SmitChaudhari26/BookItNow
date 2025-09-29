@@ -15,7 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  bool _isLoading = false; // 🔹 to show progress indicator
+  bool _isLoading = false;
 
   /// 🔹 Login
   Future<void> _login() async {
@@ -29,16 +29,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
       String uid = userCred.user!.uid;
 
-      // 🔹 Define your admin UID(s)
-      const adminUids = [
-        "ADMIN_USER_ID_1", // replace with actual admin uid
-        "ADMIN_USER_ID_2",
-      ];
+      const adminUids = ["ADMIN_USER_ID_1", "ADMIN_USER_ID_2"];
 
       if (adminUids.contains(uid)) {
         Navigator.pushReplacementNamed(context, '/admin');
       } else {
-        // Normal user → check Firestore
         DocumentSnapshot doc = await _firestore
             .collection("users")
             .doc(uid)
@@ -81,12 +76,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
       String uid = userCred.user!.uid;
 
-      // Create AppUser and store in Firestore
       AppUser newUser = AppUser(
         userId: uid,
         email: _emailController.text.trim(),
-        password: _passwordController.text
-            .trim(), // ⚠️ not safe to store plain passwords
+        password: _passwordController.text.trim(),
       );
 
       await _firestore.collection("users").doc(uid).set(newUser.toMap());
@@ -117,32 +110,98 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(labelText: "Email"),
-            ),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: InputDecoration(labelText: "Password"),
-            ),
-            SizedBox(height: 20),
+      backgroundColor: Colors.white,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Welcome Back",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                "Login or create a new account",
+                style: TextStyle(color: Colors.grey[700], fontSize: 14),
+              ),
+              SizedBox(height: 32),
 
-            _isLoading
-                ? CircularProgressIndicator()
-                : Column(
-                    children: [
-                      ElevatedButton(onPressed: _login, child: Text("Login")),
-                      TextButton(onPressed: _signup, child: Text("Signup")),
-                    ],
+              // Email
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: "Email",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-          ],
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+              ),
+              SizedBox(height: 16),
+
+              // Password
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: "Password",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  prefixIcon: Icon(Icons.lock_outline),
+                ),
+              ),
+              SizedBox(height: 24),
+
+              // Buttons
+              _isLoading
+                  ? CircularProgressIndicator()
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ElevatedButton(
+                          onPressed: _login,
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: Colors.deepPurple,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            "Login",
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        OutlinedButton(
+                          onPressed: _signup,
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: Colors.deepPurple),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            "Signup",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.deepPurple,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+            ],
+          ),
         ),
       ),
     );

@@ -68,7 +68,7 @@ class _ShowtimeDetailScreenState extends State<ShowtimeDetailScreen> {
 
   void _openCheckout(int amountInRupees) {
     var options = {
-      'key': 'rzp_test_your_key', // Replace with your Razorpay Test Key
+      'key': 'rzp_test_your_Api_Key', // Replace with your Razorpay Test Key
       'amount': amountInRupees * 100, // in paise
       'name': 'Movie Booking',
       'description': widget.show.mediaItemId,

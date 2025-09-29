@@ -15,80 +15,59 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   String searchQuery = "";
 
-  /// Fetch movies with shows in a given location
-  Future<List<Movie>> _fetchMoviesByLocation(String location) async {
-    final moviesSnapshot = await FirebaseFirestore.instance
-        .collection('movies')
-        .get();
-
+  Future<List<Movie>> _fetchMoviesByLocation([String? location]) async {
+    final moviesSnapshot = await FirebaseFirestore.instance.collection('movies').get();
     List<Movie> movieList = [];
+
     for (var movieDoc in moviesSnapshot.docs) {
       final movie = Movie.fromMap(movieDoc.id, movieDoc.data());
-
-      // Get shows for this movie
       final showsSnapshot = await FirebaseFirestore.instance
           .collection('movieShows')
           .where('mediaItemId', isEqualTo: movie.id)
           .get();
 
-      bool hasShowInLocation = false;
-
-      for (var showDoc in showsSnapshot.docs) {
-        final showData = showDoc.data();
-        final theaterId = showData['theaterId'];
-
-        // Fetch theater for this show
-        final theaterDoc = await FirebaseFirestore.instance
-            .collection('theaters')
-            .doc(theaterId)
-            .get();
-
-        if (theaterDoc.exists &&
-            theaterDoc['location'].toString().toLowerCase() ==
-                location.toLowerCase()) {
-          hasShowInLocation = true;
-          break;
+      bool includeMovie = location == null || location.isEmpty;
+      if (!includeMovie) {
+        for (var showDoc in showsSnapshot.docs) {
+          final showData = showDoc.data();
+          final theaterId = showData['theaterId'];
+          final theaterDoc = await FirebaseFirestore.instance.collection('theaters').doc(theaterId).get();
+          if (theaterDoc.exists &&
+              theaterDoc['location'].toString().toLowerCase() == location.toLowerCase()) {
+            includeMovie = true;
+            break;
+          }
         }
       }
 
-      if (hasShowInLocation) {
-        movieList.add(movie);
-      }
+      if (includeMovie) movieList.add(movie);
     }
-
     return movieList;
   }
 
-  /// Fetch events with venues in a given location
-  Future<List<Event>> _fetchEventsByLocation(String location) async {
-    final eventsSnapshot = await FirebaseFirestore.instance
-        .collection('events')
-        .get();
-
+  Future<List<Event>> _fetchEventsByLocation([String? location]) async {
+    final eventsSnapshot = await FirebaseFirestore.instance.collection('events').get();
     List<Event> eventList = [];
+
     for (var eventDoc in eventsSnapshot.docs) {
       final event = Event.fromMap(eventDoc.id, eventDoc.data());
-
-      // Check if this event has a venue in the given location
       final venuesSnapshot = await FirebaseFirestore.instance
           .collection('eventVenues')
           .where('eventId', isEqualTo: event.id)
           .get();
 
-      bool hasVenueInLocation = false;
-
-      for (var venueDoc in venuesSnapshot.docs) {
-        final venueData = venueDoc.data();
-        if (venueData['venueLocation'].toString().toLowerCase() ==
-            location.toLowerCase()) {
-          hasVenueInLocation = true;
-          break;
+      bool includeEvent = location == null || location.isEmpty;
+      if (!includeEvent) {
+        for (var venueDoc in venuesSnapshot.docs) {
+          final venueData = venueDoc.data();
+          if (venueData['venueLocation'].toString().toLowerCase() == location.toLowerCase()) {
+            includeEvent = true;
+            break;
+          }
         }
       }
 
-      if (hasVenueInLocation) {
-        eventList.add(event);
-      }
+      if (includeEvent) eventList.add(event);
     }
 
     return eventList;
@@ -98,13 +77,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("BookItNow"),
+        title: Text("BookItNow", style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: Icon(Icons.history),
-            onPressed: () {
-              Navigator.pushNamed(context, '/bookingHistory');
-            },
+            onPressed: () => Navigator.pushNamed(context, '/bookingHistory'),
           ),
         ],
       ),
@@ -120,8 +97,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: InputDecoration(
                   hintText: "Search by city (e.g., Nadiad)",
                   prefixIcon: Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.grey[100],
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
                   ),
                 ),
                 onChanged: (value) {
@@ -133,20 +113,13 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(height: 20),
 
               // Movies Section
-              Text(
-                "Movies",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
+              Text("Movies", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               SizedBox(height: 12),
               FutureBuilder<List<Movie>>(
-                future: searchQuery.isEmpty
-                    ? Future.value([]) // 🔹 empty when no search
-                    : _fetchMoviesByLocation(searchQuery),
+                future: _fetchMoviesByLocation(searchQuery.isEmpty ? null : searchQuery),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) return CircularProgressIndicator();
-                  if (snapshot.data!.isEmpty)
-                    return Text("No movies available.");
-
+                  if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+                  if (snapshot.data!.isEmpty) return Text("No movies available.");
                   return SizedBox(
                     height: 280,
                     child: ListView.builder(
@@ -158,17 +131,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => MovieDetailScreen(movie: movie),
-                              ),
+                              MaterialPageRoute(builder: (_) => MovieDetailScreen(movie: movie)),
                             );
                           },
                           child: Container(
                             width: 180,
                             margin: EdgeInsets.only(right: 12),
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.black),
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 6, offset: Offset(0, 3))],
+                              color: Colors.white,
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,45 +149,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                   height: 180,
                                   width: double.infinity,
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(8),
-                                    ),
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
                                     image: movie.image.isNotEmpty
-                                        ? DecorationImage(
-                                            image: NetworkImage(movie.image),
-                                            fit: BoxFit.cover,
-                                          )
+                                        ? DecorationImage(image: NetworkImage(movie.image), fit: BoxFit.cover)
                                         : null,
                                     color: Colors.grey[300],
                                   ),
                                   child: movie.image.isEmpty
-                                      ? Icon(
-                                          Icons.movie,
-                                          size: 80,
-                                          color: Colors.grey[700],
-                                        )
+                                      ? Icon(Icons.movie, size: 80, color: Colors.grey[700])
                                       : null,
                                 ),
                                 Padding(
                                   padding: EdgeInsets.all(8),
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        movie.name,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                      Text(movie.name, style: TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
                                       SizedBox(height: 4),
-                                      Text(
-                                        "${movie.certificate} | ${movie.language.join(', ')}",
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[700],
-                                        ),
-                                      ),
+                                      Text("${movie.certificate} | ${movie.language.join(', ')}", style: TextStyle(fontSize: 12, color: Colors.grey[700])),
                                     ],
                                   ),
                                 ),
@@ -231,20 +182,13 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(height: 24),
 
               // Events Section
-              Text(
-                "Events",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
+              Text("Events", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               SizedBox(height: 12),
               FutureBuilder<List<Event>>(
-                future: searchQuery.isEmpty
-                    ? Future.value([]) // 🔹 empty when no search
-                    : _fetchEventsByLocation(searchQuery),
+                future: _fetchEventsByLocation(searchQuery.isEmpty ? null : searchQuery),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) return CircularProgressIndicator();
-                  if (snapshot.data!.isEmpty)
-                    return Text("No events available.");
-
+                  if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+                  if (snapshot.data!.isEmpty) return Text("No events available.");
                   return SizedBox(
                     height: 280,
                     child: ListView.builder(
@@ -256,17 +200,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => EventDetailScreen(event: event),
-                              ),
+                              MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)),
                             );
                           },
                           child: Container(
                             width: 180,
                             margin: EdgeInsets.only(right: 12),
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.black),
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 6, offset: Offset(0, 3))],
+                              color: Colors.white,
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,45 +218,24 @@ class _HomeScreenState extends State<HomeScreen> {
                                   height: 180,
                                   width: double.infinity,
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(8),
-                                    ),
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
                                     image: event.image.isNotEmpty
-                                        ? DecorationImage(
-                                            image: NetworkImage(event.image),
-                                            fit: BoxFit.cover,
-                                          )
+                                        ? DecorationImage(image: NetworkImage(event.image), fit: BoxFit.cover)
                                         : null,
                                     color: Colors.grey[300],
                                   ),
                                   child: event.image.isEmpty
-                                      ? Icon(
-                                          Icons.event,
-                                          size: 80,
-                                          color: Colors.grey[700],
-                                        )
+                                      ? Icon(Icons.event, size: 80, color: Colors.grey[700])
                                       : null,
                                 ),
                                 Padding(
                                   padding: EdgeInsets.all(8),
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        event.name,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                      Text(event.name, style: TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
                                       SizedBox(height: 4),
-                                      Text(
-                                        event.category.join(', '),
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[700],
-                                        ),
-                                      ),
+                                      Text(event.category.join(', '), style: TextStyle(fontSize: 12, color: Colors.grey[700]), maxLines: 1, overflow: TextOverflow.ellipsis),
                                     ],
                                   ),
                                 ),

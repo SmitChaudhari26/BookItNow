@@ -6,20 +6,18 @@ import 'home_screen.dart'; // replace with your actual Home screen
 
 class EventTicketQRScreen extends StatelessWidget {
   final List<EventTicket> tickets;
-  const EventTicketQRScreen({required this.tickets, Key? key})
-    : super(key: key);
+  const EventTicketQRScreen({required this.tickets, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Redirect to Home screen and clear previous routes
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => HomeScreen()),
           (route) => false,
         );
-        return false; // Prevent default back behavior
+        return false;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -43,25 +41,51 @@ class EventTicketQRScreen extends StatelessWidget {
             }.toString();
 
             return Card(
-              margin: EdgeInsets.symmetric(vertical: 8),
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              margin: EdgeInsets.symmetric(vertical: 12),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(20.0),
                 child: Column(
                   children: [
-                    QrImageView(
-                      data: qrData,
-                      version: QrVersions.auto,
-                      size: 200,
+                    // ✅ QR in its own box
+                    Card(
+                      color: Colors.grey.shade50,
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: QrImageView(
+                          data: qrData,
+                          version: QrVersions.auto,
+                          size: 180,
+                        ),
+                      ),
                     ),
-                    SizedBox(height: 8),
-                    Text(
-                      // "User ID: ${ticket.userId}\n"
-                      "Event: ${ticket.eventName}\n"
-                      "Venue: ${ticket.venueName}\n"
-                      "Date: ${ticket.dateTime.day}/${ticket.dateTime.month}/${ticket.dateTime.year}\n"
-                      "Time: ${ticket.dateTime.hour}:${ticket.dateTime.minute.toString().padLeft(2, '0')}\n"
-                      "Tickets: ${ticket.ticketCount}",
-                      textAlign: TextAlign.center,
+                    SizedBox(height: 16),
+
+                    // ✅ Ticket details inside styled container
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Text(
+                        "🎤 Event: ${ticket.eventName}\n"
+                        "📍 Venue: ${ticket.venueName}\n"
+                        "📅 Date: ${ticket.dateTime.day}/${ticket.dateTime.month}/${ticket.dateTime.year}\n"
+                        "⏰ Time: ${ticket.dateTime.hour}:${ticket.dateTime.minute.toString().padLeft(2, '0')}\n"
+                        "🎟 Tickets: ${ticket.ticketCount}",
+                        textAlign: TextAlign.left,
+                        style: TextStyle(fontSize: 16, height: 1.5),
+                      ),
                     ),
                   ],
                 ),

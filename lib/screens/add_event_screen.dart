@@ -1,5 +1,4 @@
 // lib/screens/add_event_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/event.dart';
@@ -23,7 +22,6 @@ class _AddEventScreenState extends State<AddEventScreen> {
 
   bool _isLoading = false;
 
-  /// Save event to Firestore
   Future<void> _saveEvent() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -40,7 +38,7 @@ class _AddEventScreenState extends State<AddEventScreen> {
         language: _languageController.text.trim(),
         duration: _durationController.text.trim(),
         category: _categoryController.text
-            .split(',') // comma-separated categories
+            .split(',')
             .map((e) => e.trim())
             .toList(),
         certificate: _certificateController.text.trim(),
@@ -63,10 +61,37 @@ class _AddEventScreenState extends State<AddEventScreen> {
     }
   }
 
+  InputDecoration _inputDecoration(
+    String label,
+    IconData icon, {
+    String? hint,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixIcon: Icon(icon, color: Colors.blueAccent),
+      filled: true,
+      fillColor: Colors.grey.shade100,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Add Event")),
+      appBar: AppBar(
+        title: const Text(
+          "Add Event",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+        elevation: 6,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -75,43 +100,66 @@ class _AddEventScreenState extends State<AddEventScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: "Event Name"),
+                decoration: _inputDecoration("Event Name", Icons.event),
                 validator: (val) => val!.isEmpty ? "Enter event name" : null,
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(labelText: "Description"),
+                decoration: _inputDecoration("Description", Icons.description),
                 maxLines: 3,
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _imageController,
-                decoration: const InputDecoration(labelText: "Image URL"),
+                decoration: _inputDecoration("Image URL", Icons.image),
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _languageController,
-                decoration: const InputDecoration(labelText: "Language"),
+                decoration: _inputDecoration("Language", Icons.language),
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _durationController,
-                decoration: const InputDecoration(labelText: "Duration"),
+                decoration: _inputDecoration("Duration", Icons.timer),
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _certificateController,
-                decoration: const InputDecoration(labelText: "Certificate"),
+                decoration: _inputDecoration("Certificate", Icons.verified),
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _categoryController,
-                decoration: const InputDecoration(
-                  labelText: "Categories (comma separated)",
-                  hintText: "e.g. Action, Thriller",
+                decoration: _inputDecoration(
+                  "Categories",
+                  Icons.category,
+                  hint: "e.g. Action, Thriller",
                 ),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _saveEvent,
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Save Event"),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _isLoading ? null : _saveEvent,
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "Save Event",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
               ),
             ],
           ),

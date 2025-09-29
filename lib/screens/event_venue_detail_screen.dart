@@ -59,7 +59,8 @@ class _EventVenueDetailScreenState extends State<EventVenueDetailScreen> {
   // Open Razorpay Checkout
   void _openCheckout(int amountInRupees) {
     var options = {
-      'key': 'rzp_test_your_key', // Replace with your Razorpay Test Key ID
+      'key':
+          'rzp_test_your_Api_Key', // Replace with your Razorpay Test Key ID
       'amount': amountInRupees * 100, // amount in paise
       'name': 'Event Booking',
       'description': widget.venue.venueName,

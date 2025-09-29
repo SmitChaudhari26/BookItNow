@@ -22,7 +22,20 @@ class _AddMovieShowScreenState extends State<AddMovieShowScreen> {
   List<String> _availableLanguages = [];
   int _totalScreens = 0;
 
-  /// fetch Movies from Firestore
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: Colors.blueAccent),
+      filled: true,
+      fillColor: Colors.grey.shade100,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+      ),
+    );
+  }
+
   Future<List<Movie>> _fetchMovies() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('movies')
@@ -32,7 +45,6 @@ class _AddMovieShowScreenState extends State<AddMovieShowScreen> {
         .toList();
   }
 
-  /// fetch Theaters from Firestore
   Future<List<Map<String, dynamic>>> _fetchTheaters() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('theaters')
@@ -59,14 +71,12 @@ class _AddMovieShowScreenState extends State<AddMovieShowScreen> {
             .collection('movieShows')
             .doc();
 
-        // Split showtimes and trim
         List<String> showtimes = _showtimesController.text
             .split(",")
             .map((e) => e.trim())
             .where((e) => e.isNotEmpty)
             .toList();
 
-        // Helper to create seat map per showtime
         Map<String, List<bool>> createSeatMap(int count) {
           return {for (var time in showtimes) time: List.filled(count, false)};
         }
@@ -106,9 +116,17 @@ class _AddMovieShowScreenState extends State<AddMovieShowScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Add Movie Show")),
+      appBar: AppBar(
+        title: const Text(
+          "Add Movie Show",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+        elevation: 6,
+      ),
       body: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: ListView(
@@ -121,7 +139,7 @@ class _AddMovieShowScreenState extends State<AddMovieShowScreen> {
                     return Center(child: CircularProgressIndicator());
                   return DropdownButtonFormField<String>(
                     value: _selectedMovieId,
-                    decoration: InputDecoration(labelText: "Select Movie"),
+                    decoration: _inputDecoration("Select Movie", Icons.movie),
                     items: snapshot.data!
                         .map(
                           (item) => DropdownMenuItem<String>(
@@ -145,12 +163,12 @@ class _AddMovieShowScreenState extends State<AddMovieShowScreen> {
                   );
                 },
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // Language dropdown
               DropdownButtonFormField<String>(
                 value: _selectedLanguage,
-                decoration: InputDecoration(labelText: "Select Language"),
+                decoration: _inputDecoration("Select Language", Icons.language),
                 items: _availableLanguages
                     .map(
                       (lang) =>
@@ -160,7 +178,7 @@ class _AddMovieShowScreenState extends State<AddMovieShowScreen> {
                 onChanged: (val) => setState(() => _selectedLanguage = val),
                 validator: (v) => v == null ? "Please select a language" : null,
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // Theater dropdown
               FutureBuilder<List<Map<String, dynamic>>>(
@@ -170,7 +188,10 @@ class _AddMovieShowScreenState extends State<AddMovieShowScreen> {
                     return Center(child: CircularProgressIndicator());
                   return DropdownButtonFormField<String>(
                     value: _selectedTheaterId,
-                    decoration: InputDecoration(labelText: "Select Theater"),
+                    decoration: _inputDecoration(
+                      "Select Theater",
+                      Icons.theaters,
+                    ),
                     items: snapshot.data!
                         .map(
                           (item) => DropdownMenuItem<String>(
@@ -194,12 +215,15 @@ class _AddMovieShowScreenState extends State<AddMovieShowScreen> {
                   );
                 },
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // Screen number dropdown
               DropdownButtonFormField<int>(
                 value: _selectedScreenNo,
-                decoration: InputDecoration(labelText: "Select Screen Number"),
+                decoration: _inputDecoration(
+                  "Select Screen Number",
+                  Icons.screen_share,
+                ),
                 items: List.generate(_totalScreens, (index) => index + 1)
                     .map(
                       (screen) => DropdownMenuItem<int>(
@@ -211,7 +235,7 @@ class _AddMovieShowScreenState extends State<AddMovieShowScreen> {
                 onChanged: (val) => setState(() => _selectedScreenNo = val),
                 validator: (v) => v == null ? "Please select a screen" : null,
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // Date picker
               InkWell(
@@ -223,14 +247,12 @@ class _AddMovieShowScreenState extends State<AddMovieShowScreen> {
                     firstDate: today,
                     lastDate: DateTime(today.year + 2),
                   );
-                  if (picked != null) {
-                    setState(() => _selectedDate = picked);
-                  }
+                  if (picked != null) setState(() => _selectedDate = picked);
                 },
                 child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: "Select Show Date",
-                    border: OutlineInputBorder(),
+                  decoration: _inputDecoration(
+                    "Select Show Date",
+                    Icons.calendar_today,
                   ),
                   child: Text(
                     _selectedDate == null
@@ -239,21 +261,35 @@ class _AddMovieShowScreenState extends State<AddMovieShowScreen> {
                   ),
                 ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // Showtimes
               TextFormField(
                 controller: _showtimesController,
-                decoration: InputDecoration(
-                  labelText: "Showtimes (comma separated)",
+                decoration: _inputDecoration(
+                  "Showtimes (comma separated)",
+                  Icons.schedule,
                 ),
                 validator: (v) => v!.isEmpty ? "Enter showtimes" : null,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-              ElevatedButton(
-                onPressed: _addShow,
-                child: Text("Add Movie Show"),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _addShow,
+                  child: const Text(
+                    "Add Movie Show",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ),
             ],
           ),
